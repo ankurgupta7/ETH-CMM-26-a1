@@ -2,8 +2,6 @@
 #include <robot/RBJoint.h>
 #include <utils/utils.h>
 
-#include <Eigen/Dense>
-#include <iostream>
 
 namespace crl {
 
@@ -157,34 +155,14 @@ P3D GeneralizedCoordinatesRobotRepresentation::
     // if qIndex <= 2, this q is a component of position of the base.
     if (qIndex <= 2) return pLocal;
 
-    // TODO: Ex.1 Forward Kinematics
-    // this is a subfunction for getWorldCoordinates() and compute_dpdq()
-    // return the point in the coordinate frame of the parent of qIdx after
-    // the DOF rotation has been applied.
-    //
-    // Hint:
-    // - use rotateVec(const V3D &v, double alpha, const V3D &axis) to get a vector
-    // rotated around axis by angle alpha.
-    auto vLocal = V3D(pLocal);
-    auto cur_joint = getJointForQIdx(qIndex);
-    if (cur_joint != nullptr) {
-        vLocal -= V3D(cur_joint->cJPos);
-        std::cout << "cur_joint->cJPos=" << V3D(cur_joint->cJPos).transpose() << "\n"; 
-    }
-    int joint_index_of_parent = getParentQIdxOf(qIndex);
-    Eigen::Quaterniond parent_R_child =
-        getRelOrientationForQ(joint_index_of_parent);
+    V3D vLocal(pLocal);
+    RBJoint* joint = getJointForQIdx(qIndex);
+    if (joint != nullptr) vLocal -= V3D(joint->cJPos);
 
-    // std::cout << "Rotating point by Quat=" << parent_R_child.w() << " " << parent_R_child.vec().transpose()  << "\n";
-    Eigen::Vector3d p_child = vLocal;
-    Eigen::Vector3d p_parent = parent_R_child * p_child;
-    P3D pParent(p_parent[0], p_parent[1], p_parent[2]);
-    if (cur_joint != nullptr) {
-        pParent += cur_joint->pJPos;
-            std::cout << "cur_joint->pJPos=" << V3D(cur_joint->pJPos).transpose() << "\n";
-    }
-    // std::cout << " P in parent frame: " << pParent.x << " " << pParent.y << " "
-    //           << pParent.z << " --> ";
+    const V3D axis = getQAxis(qIndex);
+    V3D vParent = rotateVec(vLocal, q[qIndex], axis);
+    P3D pParent = vParent.toP3D();
+    if (joint != nullptr) pParent += joint->pJPos;
     return pParent;
 }
 
@@ -192,14 +170,6 @@ P3D GeneralizedCoordinatesRobotRepresentation::
 // coordinates of rb (relative to its COM): p(q)
 P3D GeneralizedCoordinatesRobotRepresentation::getWorldCoordinates(const P3D& p,
                                                                    RB* rb) {
-    // TODO: Ex.1 Forward Kinematics
-    // implement subfunction getCoordsInParentQIdxFrameAfterRotation() first.
-    //
-    // Hint: you may want to use the following functions
-    // - getQIdxForJoint()
-    // - getParentQIdxOf()
-    // - getCoordsInParentQIdxFrameAfterRotation()
-
     P3D pInWorld = p;
 
     int joint_index = getQIdxForJoint(rb->pJoint);
@@ -208,15 +178,7 @@ P3D GeneralizedCoordinatesRobotRepresentation::getWorldCoordinates(const P3D& p,
             getCoordsInParentQIdxFrameAfterRotation(joint_index, pInWorld);
         joint_index = getParentQIdxOf(joint_index);
     }
-    std::cout << std::endl;
-    Eigen::Vector3d pInWorldVec(pInWorld.x, pInWorld.y, pInWorld.z);
-    auto world_t = Eigen::Vector3d(q[0], q[1], q[2]);
-
-    pInWorldVec = pInWorldVec + world_t;
-    std::cout << "world t " << world_t.transpose() << "\n";
-    std::cout << "World Position from q " << pInWorldVec[0] << " "
-              << pInWorldVec[1] << " " << pInWorldVec[2] << "\n";
-    return getP3D(pInWorldVec);
+    return pInWorld + V3D(q[0], q[1], q[2]);
 }
 
 // returns the global orientation associated with a specific dof q...
