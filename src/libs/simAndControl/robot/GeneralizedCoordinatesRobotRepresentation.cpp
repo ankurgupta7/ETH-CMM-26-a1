@@ -245,13 +245,16 @@ void GeneralizedCoordinatesRobotRepresentation::estimate_linear_jacobian(
 
         // TODO: Ex. 2-1 Inverse Kinematics - Jacobian by Finite Difference
         // compute Jacobian matrix dpdq_i by FD and fill dpdq
-        // q[i] = val + h;
-        // P3D p_p;  // TODO: fix this: p(qi + h);
+        q[i] = val + h;
+        P3D p_p = getWorldCoordinates(p,rb); // TODO: fix this: p(qi + h);
 
-        // q[i] = val - h;
-        // P3D p_m;  // TODO: fix this: p(qi - h)
+        q[i] = val - h;
+        P3D p_m =  getWorldCoordinates(p,rb); // TODO: fix this: p(qi - h);
 
         // V3D dpdq_i(0, 0, 0);  // TODO: fix this: compute derivative dp(q)/dqi
+        V3D dpdq_i = (V3D(p_p) - V3D(p_m)) / (2 * h);
+        dpdq.col(i) = dpdq_i;
+        std::cout << "dpdq_i for q[" << i << "] = " << dpdq_i.transpose() << std::endl;
 
         // finally, we don't want to change q[i] value. back to original value.
         q[i] = val;
