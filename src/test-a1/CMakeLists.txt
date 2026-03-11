@@ -9,6 +9,7 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     PUBLIC "crl::utils" #
     PUBLIC "crl::simAndControl" #
+    stdc++fs
 )
 
 add_test(${PROJECT_NAME} "test-a1")
@@ -20,6 +21,8 @@ add_executable(test-a1-id-check
 target_link_libraries(test-a1-id-check
     PUBLIC "crl::utils" #
     PUBLIC "crl::simAndControl" #
+    stdc++fs
+
 )
 add_test(test-a1-id-check "test-a1-id-check")
 set_tests_properties(test-a1-id-check PROPERTIES LABELS "a1")
@@ -80,6 +83,7 @@ add_executable(test-a1-ex3-analytic-all-limbs
 target_link_libraries(test-a1-ex3-analytic-all-limbs
     PUBLIC "crl::utils" #
     PUBLIC "crl::simAndControl" #
+    stdc++fs #
 )
 add_test(test-a1-ex3-analytic-all-limbs "test-a1-ex3-analytic-all-limbs")
 set_tests_properties(test-a1-ex3-analytic-all-limbs PROPERTIES LABELS "a1")

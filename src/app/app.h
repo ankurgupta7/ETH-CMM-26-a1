@@ -5,11 +5,11 @@
 #include <gui/light.h>
 #include <gui/renderer.h>
 #include <gui/shader.h>
-#include <robot/GeneralizedCoordinatesRobotRepresentation.h>
 #include <kinematics/IK_Solver.h>
 #include <locomotion/FootFallPattern.h>
 #include <locomotion/KinematicTrackingController.h>
 #include <locomotion/SimpleLocomotionTrajectoryPlanner.h>
+#include <robot/GeneralizedCoordinatesRobotRepresentation.h>
 #include <robot/Robot.h>
 #include <utils/logger.h>
 
@@ -23,7 +23,7 @@ namespace locomotion {
 
 class App : public Basic3DAppWithShadows {
 public:
-    App(const char *title = "CRL Playground - Locomotion App - kinematic",
+    App(const char* title = "CRL Playground - Locomotion App - kinematic",
         std::string iconPath = CRL_DATA_FOLDER "/crl_icon_grey.png")
         : Basic3DAppWithShadows(title, iconPath) {
         camera = TrackingCamera(5);
@@ -151,7 +151,8 @@ public:
                     auto joint = gcrr.getJointForQIdx(i);
                     oss << joint->name.c_str();
                 }
-                Logger::consolePrint("Stop recording with [%d] frames!", controller->trajectory.size());
+                Logger::consolePrint("Stop recording with [%d] frames!",
+                                     controller->trajectory.size());
                 Logger::consolePrint("%s", oss.str().c_str());
                 saveTrajectoryToJson();
             }
@@ -163,14 +164,17 @@ public:
                     if (i != 0) oss << ", ";
                     oss << lastTrajectoryPoint[i];
                 }
-                Logger::consolePrint("traj pt [%d]: %s", controller->trajectory.size(), oss.str().c_str());
+                Logger::consolePrint("traj pt [%d]: %s",
+                                     controller->trajectory.size(),
+                                     oss.str().c_str());
             }
 
             controller->computeAndApplyControlSignals(dt, recordTrajectory);
             if (recordTrajectory && prevRecordTrajectory &&
                 controller->trajectory.size() >= kRecordMaxFrames) {
                 recordTrajectory = false;
-                Logger::consolePrint("Stop recording with [%d] frames!", controller->trajectory.size());
+                Logger::consolePrint("Stop recording with [%d] frames!",
+                                     controller->trajectory.size());
             }
             controller->advanceInTime(dt);
 
@@ -354,12 +358,12 @@ public:
         controller->planner->visualizeParameters();
     }
 
-    virtual bool drop(int count, const char **fileNames) override {
+    virtual bool drop(int count, const char** fileNames) override {
         return true;
     }
 
 private:
-    void setupRobotAndController(const RobotModel &model) {
+    void setupRobotAndController(const RobotModel& model) {
         // kinematic
         if (robot) delete robot;
         if (controller) {
@@ -385,7 +389,7 @@ private:
         updateDrawingOption(robot);
     }
 
-    PeriodicGait getPeriodicGait(LeggedRobot *robot) {
+    PeriodicGait getPeriodicGait(LeggedRobot* robot) {
         PeriodicGait pg;
 
         if (robot->limbs.size() == 2) {
@@ -395,21 +399,24 @@ private:
         } else if (robot->limbs.size() == 4) {
             // Foot contact timeline for the quadruped robot
             double tOffset = 0.0;
-            pg.addSwingPhaseForLimb(robot->limbs[0], 0 - tOffset, 0.5 + tOffset);
-            pg.addSwingPhaseForLimb(robot->limbs[1], 0.5 - tOffset, 1.0 + tOffset);
-            pg.addSwingPhaseForLimb(robot->limbs[2], 0.5 - tOffset, 1.0 + tOffset);
-            pg.addSwingPhaseForLimb(robot->limbs[3], 0 - tOffset, 0.5 + tOffset);
+            pg.addSwingPhaseForLimb(robot->limbs[0], 0 - tOffset,
+                                    0.5 + tOffset);
+            pg.addSwingPhaseForLimb(robot->limbs[1], 0.5 - tOffset,
+                                    1.0 + tOffset);
+            pg.addSwingPhaseForLimb(robot->limbs[2], 0.5 - tOffset,
+                                    1.0 + tOffset);
+            pg.addSwingPhaseForLimb(robot->limbs[3], 0 - tOffset,
+                                    0.5 + tOffset);
             pg.strideDuration = 0.7;
         } else if (robot->limbs.size() == 6) {
             // Hexapod gait pattern (6 limbs)
             // TODO: ex 5.2 replace with your own gait pattern for the hexapod
-
         }
 
         return pg;
     }
 
-    void updateDrawingOption(LeggedRobot *robot) {
+    void updateDrawingOption(LeggedRobot* robot) {
         robot->showMeshes = showMeshes;
         robot->showSkeleton = showSkeleton;
         robot->showJointAxes = showJointAxes;
@@ -426,10 +433,10 @@ private:
 public:
     SimpleGroundModel ground;
 
-    LeggedRobot *robot = nullptr;
+    LeggedRobot* robot = nullptr;
 
     // controllers
-    KinematicTrackingController *controller = nullptr;
+    KinematicTrackingController* controller = nullptr;
 
     static constexpr double kRecordDt = 0.03;
     static constexpr int kRecordSeconds = 15;

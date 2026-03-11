@@ -31,12 +31,12 @@ public:
     V3D forward = V3D(0, 0, 1);
 
     // drawing flags
-    bool showMeshes = true;
+    bool showMeshes = false;
     bool showJointLimits = false;
     bool showCollisionSpheres = false;
     bool showEndEffectors = false;
     bool showJointAxes = false;
-    bool showSkeleton = false;
+    bool showSkeleton = true;
     bool showMOI = false;
     bool showCoordFrame = false;
     bool showJointAngles = false;

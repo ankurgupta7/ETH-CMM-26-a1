@@ -2,10 +2,13 @@
 #include <robot/RBJoint.h>
 #include <utils/utils.h>
 
+#include <Eigen/Dense>
+#include <iostream>
+
 namespace crl {
 
 GeneralizedCoordinatesRobotRepresentation::
-    GeneralizedCoordinatesRobotRepresentation(Robot *a) {
+    GeneralizedCoordinatesRobotRepresentation(Robot* a) {
     robot = a;
     resize(q, getDOFCount());
     syncGeneralizedCoordinatesWithRobotState();
@@ -20,7 +23,7 @@ int GeneralizedCoordinatesRobotRepresentation::getDOFCount() const {
 
 //returns the index of the generalized coordinate corresponding to this joint
 int GeneralizedCoordinatesRobotRepresentation::getQIdxForJoint(
-    RBJoint *joint) const {
+    RBJoint* joint) const {
     //the root of the robot has a nullptr joint, and as such this should correspond to the first qIdx of the root DOFs
     if (joint == NULL) return 5;
     return 6 + joint->jIndex;
@@ -34,7 +37,7 @@ int GeneralizedCoordinatesRobotRepresentation::getQIdxForJointIdx(
 
 //returns a pointer to the joint corresponding to this generalized coordinate index.
 //If the index corresponds to a root DOF, this method will return NULL.
-RBJoint *GeneralizedCoordinatesRobotRepresentation::getJointForQIdx(
+RBJoint* GeneralizedCoordinatesRobotRepresentation::getJointForQIdx(
     int qIdx) const {
     if (qIdx < 6) return NULL;
     return robot->jointList[qIdx - 6];
@@ -101,7 +104,7 @@ void GeneralizedCoordinatesRobotRepresentation::
 // given the current state of the generalized representation, output the reduced
 // state of the robot
 void GeneralizedCoordinatesRobotRepresentation::getReducedRobotState(
-    RobotState &state) {
+    RobotState& state) {
     // set the position, velocity, rotation and angular velocity for the root
     state.setPosition(P3D(0, 0, 0) + getQAxis(0) * q[0] + getQAxis(1) * q[1] +
                       getQAxis(2) * q[2]);
@@ -118,7 +121,7 @@ void GeneralizedCoordinatesRobotRepresentation::getReducedRobotState(
 }
 
 // sets the current q values
-void GeneralizedCoordinatesRobotRepresentation::setQ(const dVector &qNew) {
+void GeneralizedCoordinatesRobotRepresentation::setQ(const dVector& qNew) {
     assert(q.size() == qNew.size());
     // NOTE: we don't update the angular velocities. The assumption is that the
     // correct behavior is that the joint relative angular velocities don't
@@ -127,16 +130,16 @@ void GeneralizedCoordinatesRobotRepresentation::setQ(const dVector &qNew) {
 }
 
 // gets the current q values
-void GeneralizedCoordinatesRobotRepresentation::getQ(dVector &q_copy) {
+void GeneralizedCoordinatesRobotRepresentation::getQ(dVector& q_copy) {
     q_copy = q;
 }
 
 void GeneralizedCoordinatesRobotRepresentation::getQFromReducedState(
-    const RobotState &rs, dVector &q_copy) {
+    const RobotState& rs, dVector& q_copy) {
     dVector q_old = q;
 
     RobotState oldState(robot);
-    robot->setState((RobotState *)&rs);
+    robot->setState((RobotState*)&rs);
     syncGeneralizedCoordinatesWithRobotState();
     getQ(q_copy);
     robot->setState(&oldState);
@@ -150,48 +153,70 @@ void GeneralizedCoordinatesRobotRepresentation::getQFromReducedState(
     the DOF rotation has been applied.
 */
 P3D GeneralizedCoordinatesRobotRepresentation::
-    getCoordsInParentQIdxFrameAfterRotation(int qIndex, const P3D &pLocal) {
-    // if qIndex <= 2, this q is a component of position of the base. 
+    getCoordsInParentQIdxFrameAfterRotation(int qIndex, const P3D& pLocal) {
+    // if qIndex <= 2, this q is a component of position of the base.
     if (qIndex <= 2) return pLocal;
 
     // TODO: Ex.1 Forward Kinematics
     // this is a subfunction for getWorldCoordinates() and compute_dpdq()
     // return the point in the coordinate frame of the parent of qIdx after
     // the DOF rotation has been applied.
-    // 
+    //
     // Hint:
-    // - use rotateVec(const V3D &v, double alpha, const V3D &axis) to get a vector 
+    // - use rotateVec(const V3D &v, double alpha, const V3D &axis) to get a vector
     // rotated around axis by angle alpha.
-    
-    // TODO: implement your logic here.
+    auto vLocal = V3D(pLocal);
+    auto cur_joint = getJointForQIdx(qIndex);
+    if (cur_joint != nullptr) {
+        vLocal -= V3D(cur_joint->cJPos);
+        std::cout << "cur_joint->cJPos=" << V3D(cur_joint->cJPos).transpose() << "\n"; 
+    }
+    int joint_index_of_parent = getParentQIdxOf(qIndex);
+    Eigen::Quaterniond parent_R_child =
+        getRelOrientationForQ(joint_index_of_parent);
 
-    // return P3D();
-
-    return P3D();
+    // std::cout << "Rotating point by Quat=" << parent_R_child.w() << " " << parent_R_child.vec().transpose()  << "\n";
+    Eigen::Vector3d p_child = vLocal;
+    Eigen::Vector3d p_parent = parent_R_child * p_child;
+    P3D pParent(p_parent[0], p_parent[1], p_parent[2]);
+    if (cur_joint != nullptr) {
+        pParent += cur_joint->pJPos;
+            std::cout << "cur_joint->pJPos=" << V3D(cur_joint->pJPos).transpose() << "\n";
+    }
+    // std::cout << " P in parent frame: " << pParent.x << " " << pParent.y << " "
+    //           << pParent.z << " --> ";
+    return pParent;
 }
 
 // returns the world coordinates for point p, which is specified in the local
 // coordinates of rb (relative to its COM): p(q)
-P3D GeneralizedCoordinatesRobotRepresentation::getWorldCoordinates(const P3D &p,
-                                                                   RB *rb) {
+P3D GeneralizedCoordinatesRobotRepresentation::getWorldCoordinates(const P3D& p,
+                                                                   RB* rb) {
     // TODO: Ex.1 Forward Kinematics
     // implement subfunction getCoordsInParentQIdxFrameAfterRotation() first.
     //
     // Hint: you may want to use the following functions
     // - getQIdxForJoint()
     // - getParentQIdxOf()
-    // - getCoordsInParentQIdxFrameAfterRotation() 
-
-    // P3D pInWorld;
-
-    // TODO: implement your logic here.
-    //
-    //
-
-    // return pInWorld;
+    // - getCoordsInParentQIdxFrameAfterRotation()
 
     P3D pInWorld = p;
-    return pInWorld;
+
+    int joint_index = getQIdxForJoint(rb->pJoint);
+    while (joint_index > 2) {
+        pInWorld =
+            getCoordsInParentQIdxFrameAfterRotation(joint_index, pInWorld);
+        joint_index = getParentQIdxOf(joint_index);
+    }
+    std::cout << std::endl;
+    Eigen::Vector3d pInWorldVec(pInWorld.x, pInWorld.y, pInWorld.z);
+    auto world_t = Eigen::Vector3d(q[0], q[1], q[2]);
+
+    pInWorldVec = pInWorldVec + world_t;
+    std::cout << "world t " << world_t.transpose() << "\n";
+    std::cout << "World Position from q " << pInWorldVec[0] << " "
+              << pInWorldVec[1] << " " << pInWorldVec[2] << "\n";
+    return getP3D(pInWorldVec);
 }
 
 // returns the global orientation associated with a specific dof q...
@@ -223,16 +248,16 @@ V3D GeneralizedCoordinatesRobotRepresentation::getWorldCoordsAxisForQ(
 
 // returns the world-relative orientation for rb
 Quaternion GeneralizedCoordinatesRobotRepresentation::getOrientationFor(
-    RB *rb) {
+    RB* rb) {
     int qIndex = getQIdxForJoint(rb->pJoint);
     return getWorldRotationForQ(qIndex);
 }
 
 // computes the jacobian dp/dq that tells you how the world coordinates of p
 // change with q. p is expressed in the local coordinates of rb
-void GeneralizedCoordinatesRobotRepresentation::compute_dpdq(const P3D &p,
-                                                             RB *rb,
-                                                             Matrix &dpdq) {
+void GeneralizedCoordinatesRobotRepresentation::compute_dpdq(const P3D& p,
+                                                             RB* rb,
+                                                             Matrix& dpdq) {
     resize(dpdq, 3, (int)q.size());
 
     // TODO: Ex.3 Analytic Jacobian
@@ -249,7 +274,7 @@ void GeneralizedCoordinatesRobotRepresentation::compute_dpdq(const P3D &p,
 
 // estimates the linear jacobian dp/dq using finite differences
 void GeneralizedCoordinatesRobotRepresentation::estimate_linear_jacobian(
-    const P3D &p, RB *rb, Matrix &dpdq) {
+    const P3D& p, RB* rb, Matrix& dpdq) {
     resize(dpdq, 3, (int)q.size());
 
     for (int i = 0; i < q.size(); i++) {

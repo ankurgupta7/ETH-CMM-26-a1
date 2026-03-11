@@ -48,6 +48,10 @@ public:
      */
     bool getRayIntersectionPoint(const Ray &ray, P3D &intersectionPoint,
                                  bool checkMeshes, bool checkSkeleton);
+
+    RBJoint* getParentJoint() const {
+        return pJoint;
+    }
 };
 
 }  // namespace crl

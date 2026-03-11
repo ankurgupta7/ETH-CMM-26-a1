@@ -230,6 +230,8 @@ public:
         double oldVal = getComponentAlong(other);
         *this += other * (val - oldVal);
     };
+    P3D toP3D() const { return P3D((*this)[0], (*this)[1], (*this)[2]); }
+    // Eigen::Vector3d toEigen() const { return Eigen::Vector3d((*this)[0], (*this)[1], (*this)[2]); }
 };
 
 inline V3D operator*(double val, const V3D &v) { return v * val; }
